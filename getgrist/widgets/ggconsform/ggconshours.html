@@ -1,54 +1,77 @@
-<!-- HTML часть -->
+<!-- HTML часть остается без изменений -->
 <form id="hoursMoneyForm">
-    <label for="client">Client:</label>
-    <input type="text" id="client" required>
-    <br>
-    <label for="hours">Hours:</label>
-    <input type="number" id="hours" required>
-    <br>
-    <label for="amount">Amount:</label>
-    <input type="number" id="amount" required>
-    <br>
-    <button type="submit">Submit</button>
-  </form>
-  
-  <script>
-  // JavaScript часть
-  document.addEventListener('grist-doc-ready', () => {
-    const grist = window.grist;
-  
-    async function submitForm(event) {
-      event.preventDefault();
-      const client = document.getElementById('client').value;
-      const hours = parseFloat(document.getElementById('hours').value);
-      const amount = parseFloat(document.getElementById('amount').value);
-  
-      try {
-        // Получаем таблицы из настроек виджета
-        const hoursTable = grist.getOption('hoursTable');
-        const moneyTable = grist.getOption('moneyTable');
-  
-        // Добавляем запись в таблицу Hours
-        const hoursRecord = await grist.docApi.addRecords(hoursTable, [{
-          Client: client,
-          Hours: hours
-        }]);
-  
-        // Добавляем запись в таблицу Money
-        await grist.docApi.addRecords(moneyTable, [{
-          Client: client,
-          Amount: amount,
-          Hours: hoursRecord[0].id  // Ссылка на запись в таблице Hours
-        }]);
-  
-        alert('Records added successfully!');
-        document.getElementById('hoursMoneyForm').reset();
-      } catch (error) {
-        console.error('Error adding records:', error);
-        alert('An error occurred while adding records.');
-      }
+  <label for="client">Client:</label>
+  <input type="text" id="client" required>
+  <br>
+  <label for="hours">Hours:</label>
+  <input type="number" id="hours" required>
+  <br>
+  <label for="amount">Amount:</label>
+  <input type="number" id="amount" required>
+  <br>
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+// JavaScript часть с добавленным конфигуратором
+document.addEventListener('grist-doc-ready', () => {
+  const grist = window.grist;
+
+  // Функция для настройки виджета
+  function configure() {
+    return grist.api.configure({
+      hoursTable: {
+        type: 'Table',
+        label: 'Hours Table',
+        docApiOptions: {
+          requiredAccess: 'full'
+        },
+      },
+      moneyTable: {
+        type: 'Table',
+        label: 'Money Table',
+        docApiOptions: {
+          requiredAccess: 'full'
+        },
+      },
+    });
+  }
+
+  // Вызываем функцию настройки
+  configure();
+
+  async function submitForm(event) {
+    event.preventDefault();
+    const client = document.getElementById('client').value;
+    const hours = parseFloat(document.getElementById('hours').value);
+    const amount = parseFloat(document.getElementById('amount').value);
+
+    try {
+      // Получаем таблицы из настроек виджета
+      const hoursTable = await grist.docApi.fetchSelectedTable(grist.getOption('hoursTable'));
+      const moneyTable = await grist.docApi.fetchSelectedTable(grist.getOption('moneyTable'));
+
+      // Добавляем запись в таблицу Hours
+      const hoursRecord = await grist.docApi.addRecords(hoursTable, [{
+        Client: client,
+        Hours: hours
+      }]);
+
+      // Добавляем запись в таблицу Money
+      await grist.docApi.addRecords(moneyTable, [{
+        Client: client,
+        Amount: amount,
+        Hours: hoursRecord[0].id  // Ссылка на запись в таблице Hours
+      }]);
+
+      alert('Records added successfully!');
+      document.getElementById('hoursMoneyForm').reset();
+    } catch (error) {
+      console.error('Error adding records:', error);
+      alert('An error occurred while adding records.');
     }
-  
-    document.getElementById('hoursMoneyForm').addEventListener('submit', submitForm);
-  });
-  </script>
+  }
+
+  document.getElementById('hoursMoneyForm').addEventListener('submit', submitForm);
+});
+</script>
